@@ -1,0 +1,45 @@
+# Build directory
+/build/
+
+# Visual Studio Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Linux
+*~
+
+# C++ compiled files
+*.o
+*.obj
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.dmp
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Other IDE/editor files
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS generated files (Windows)
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Additional macOS files
+.AppleDouble
+.LSOverride
