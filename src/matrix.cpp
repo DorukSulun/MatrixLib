@@ -72,6 +72,38 @@ namespace matrixlib
 		column = other.column;
 		allocateData();
 		copyDataFrom(other);
+		return *this;
+	}
+
+	void Matrix::swapRows(unsigned short i,unsigned short j)
+	{
+		if(i >= row || j >= row){ throw std::out_of_range("Row index out of range in swapRows."); }
+		else if(i == j){ return; }
+
+		double* temp = data[i];
+		data[i] = data[j];
+		data[j] = temp;
+	}
+
+	void Matrix::scaleRow(unsigned short i,double c)
+	{
+		if(i >= row){ throw std::out_of_range("Row index out of range in scaleRow."); }
+		else if(c == 0.0){ throw std::invalid_argument("Scaling factor can't be zero."); }
+		for(unsigned short indexCol = 0; indexCol < column; ++indexCol)
+		{
+			data[i][indexCol] *= c;
+		}
+	}
+
+	void Matrix::addScaledRow(unsigned short sourceRow,unsigned short targetRow,double c)
+	{
+		if(sourceRow >= row || targetRow >= row){ throw std::out_of_range("Row index out of range in addScaledRow."); }
+		else if(targetRow == sourceRow){ throw std::invalid_argument("Cannot add a scaled row to itself."); }
+		else if(c == 0.0){ throw std::invalid_argument("Scaling factor cannot be zero."); }
+		for(unsigned short indexCol = 0; indexCol < column; ++indexCol)
+		{
+			data[targetRow][indexCol] += c * data[sourceRow][indexCol];
+		}
 	}
 
 }
