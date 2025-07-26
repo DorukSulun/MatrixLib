@@ -8,4 +8,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Include directory
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_library(matrixlib STATIC)
+add_library(matrixlib STATIC
+	src/matrix.cpp
+)

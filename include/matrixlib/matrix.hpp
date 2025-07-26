@@ -2,7 +2,6 @@
 #define MATRIX_HPP
 
 #include<iostream>
-#include<stdexcept>    // for std::invalid_argument
 
 namespace matrixlib
 {
