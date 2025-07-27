@@ -106,4 +106,17 @@ namespace matrixlib
 		}
 	}
 
+	Matrix Matrix::transpose() const
+	{
+		Matrix result(column,row);
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			for(unsigned short j = 0; j < column; ++j)
+			{
+				result.data[j][i] = this->data[i][j];
+			}
+		}
+		return result;
+	}
+
 }
