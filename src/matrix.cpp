@@ -6,7 +6,7 @@ namespace matrixlib
 {
 	void Matrix::allocateData()
 	{
-		if(row == 0 || column == 0){throw std::invalid_argument("Matrix size cannot be zero.");}	
+		if(row == 0 || column == 0){ throw std::invalid_argument("Matrix size cannot be zero."); }	
 
 		data = new double*[row];
 		for(unsigned short i = 0; i < row; ++i)
@@ -114,6 +114,52 @@ namespace matrixlib
 			for(unsigned short j = 0; j < column; ++j)
 			{
 				result.data[j][i] = this->data[i][j];
+			}
+		}
+		return result;
+	}
+
+	Matrix Matrix::operator+(const Matrix& other) const
+	{
+		if(row != other.row || column != other.column){ throw std::invalid_argument("Matrix dimension must match for addition."); }
+		Matrix result(row,column);
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			for(unsigned short j = 0; j < column; ++j)
+			{
+				result.data[i][j] = data[i][j] + other.data[i][j];
+			}
+		}
+		return result;
+	}
+
+	Matrix Matrix::operator-(const Matrix& other) const
+	{
+		if(row != other.row || column != other.column){ throw std::invalid_argument("Matrix dimension must match for subtraction."); }
+		Matrix result(row,column);
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			for(unsigned short j = 0; j < column; ++j)
+			{
+				result.data[i][j] = data[i][j] - other.data[i][j];
+			}
+		}
+		return result;
+	}
+
+	Matrix Matrix::operator*(const Matrix& other) const
+	{
+		if(column != other.row){ throw std::invalid_argument("The matrix multiplication operation must match the column of the first matrix with the row of the second matrix."); }
+		Matrix result(row,other.column);
+
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			for(unsigned short j = 0; j < other.column; ++j)
+			{
+				for(unsigned short k = 0; k < column; ++k)
+				{
+					result.data[i][j] += this->data[i][k] * other.data[k][j];
+				}
 			}
 		}
 		return result;
