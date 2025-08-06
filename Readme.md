@@ -9,13 +9,13 @@ A lightweight C++ matrix library implementing dynamic memory management and basi
 In Progress:
 - Matrix class with dynamic memory management
 - Basic operations: constructors, destructor, and element accessors
-
-Planned features:
 - Matrix addition, multiplication, and transpose
 - Elementary row operations (swap, scale, add scaled row)
 - Property checks (isSquare, isSymmetric, etc.)
 - Utility functions (trace, rank)
-- Advanced operations: inverse, LU/QR decomposition, eigenvalues and eigenvectors
+
+Planned features:
+- Advanced operations: inverse, echelon, LU/QR decomposition, eigenvalues and eigenvectors
 
 
 ---

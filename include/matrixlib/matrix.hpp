@@ -10,7 +10,7 @@ namespace matrixlib
     {
         private:
             double** data;
-            unsigned short row(0), column(0);
+            unsigned short row = 0, column = 0;
 
             void allocateData();
             void deallocateData();
@@ -27,6 +27,11 @@ namespace matrixlib
             inline unsigned short getRow() const { return row; }
             inline unsigned short getColumn() const { return column; }
 
+            // Element access
+            double& operator()(unsigned short i, unsigned short j);             // Write access
+            double operator()(unsigned short i, unsigned short j) const;        // Read-only access
+
+
             // Elementary Row Operations
             void swapRows(unsigned short i,unsigned short j);                                 // Replace row i with row j
             void scaleRow(unsigned short i,double c);                                         // Let line i be multiplied by scalar c
@@ -38,6 +43,8 @@ namespace matrixlib
             Matrix operator+(const Matrix& other) const;
             Matrix operator-(const Matrix& other) const;
             Matrix operator*(const Matrix& other) const;
+
+            bool operator==(const Matrix& other) const;
             
             Matrix echelon() const;
             Matrix doUpperTriangular() const;

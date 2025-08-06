@@ -10,4 +10,5 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 add_library(matrixlib STATIC
 	src/matrix.cpp
+	src/utility.cpp
 )
