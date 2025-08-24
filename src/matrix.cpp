@@ -8,7 +8,14 @@ namespace matrixlib
 {
 	void Matrix::allocateData()
 	{
-		if(row == 0 || column == 0) throw std::invalid_argument("Matrix size cannot be zero."); 
+		if(row == 0 || column == 0)
+		{
+			data = nullptr;
+			#ifdef DEBUG
+			std::cout << "\n\n\tEmpty matrix (" << row << "x" << column << ") allocated.\n";
+			#endif
+			return;
+		}
 
 		data = new double*[row];
 		for(unsigned short i = 0; i < row; ++i) data[i] = new double[column]();	// zero initialize
@@ -42,7 +49,18 @@ namespace matrixlib
 	}
 
 
-	Matrix::Matrix(unsigned short row_,unsigned short column_) : row(row_),column(column_){ allocateData(); }
+	Matrix::Matrix(unsigned short row_,unsigned short column_,double initial) : row(row_),column(column_)
+	{ 
+		allocateData(); 
+			
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			for(unsigned short j = 0; j < column; ++j)
+			{
+				data[i][j] = initial;
+			}
+		}
+	}
 	
 	Matrix::~Matrix()
 	{
@@ -59,6 +77,240 @@ namespace matrixlib
 		#ifdef DEBUG
     	std::cout << "Copy constructor called: " << row << "x" << column << " matrix copied.\n";
 		#endif
+	}
+
+
+    Matrix Matrix::identity(unsigned short n)
+	{
+		Matrix result(n,n);
+		for(unsigned short i = 0; i < n; ++i) result.data[i][i] = 1.0;
+		return result;
+	}
+
+	Matrix Matrix::zeros(unsigned short i, unsigned short j)
+	{
+		return Matrix(i,j);
+	}
+
+	Matrix Matrix::ones(unsigned short i,unsigned short j)
+	{
+		return Matrix(i,j,1.0);
+	}
+
+	Matrix Matrix::diagonal(unsigned short n)
+	{
+		Matrix result(n,n);
+		for(unsigned short i = 0; i < n; ++i) result.data[i][i] = 1.0;
+		return result;
+	}
+
+	Matrix Matrix::scalar(unsigned short n,double value)
+	{
+		Matrix result(n,n);
+
+		for(unsigned short i = 0; i < n; ++i) result(i,i) = value;
+		return result;
+	}
+
+	Matrix Matrix::exchange(unsigned short n)
+	{
+		Matrix result(n,n);
+
+		for(unsigned short i = 0; i < result.getRow(); ++i) result.data[i][n-1-i] = 1.0;
+		return result;
+	}
+
+
+	Matrix Matrix::pivotsCoordinates() const
+	{
+		Matrix matrix(*this);
+		unsigned short scalarRowsCount = 0;
+		bool* isScalar = new bool[row];
+
+		for(unsigned short i = 0; i < row; ++i) isScalar[i] = false;
+
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			if(isScalar[i]) continue;
+			for(unsigned short j = i + 1; j < row; ++j)
+			{
+				if(areScalarRows(matrix,i,j)) isScalar[j] = true;
+			}
+		}
+
+		Matrix pivotInf(row,2);
+		bool* usedCol = new bool[column];
+		for(unsigned short i = 0; i < column; ++i) usedCol[i] = false;
+
+		unsigned short count = 0;
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			if(isScalar[i]) continue;
+			for(unsigned short j = 0; j < column; ++j)
+			{
+				if(std::abs(matrix.data[i][j]) > EPSILON && !usedCol[j])
+				{
+					pivotInf.data[count][0] = i;
+					pivotInf.data[count][1] = j;
+					++count;
+					usedCol[j] = true;
+					break;				
+				}
+			}
+		}
+
+		delete[] isScalar;
+		delete[] usedCol;
+
+		Matrix result(count,2);
+		for(unsigned short i = 0; i < count; ++i)
+		{
+			result.data[i][0] = static_cast<unsigned short>(pivotInf.data[i][0]);
+    		result.data[i][1] = static_cast<unsigned short>(pivotInf.data[i][1]);
+		}
+		if(result.data == nullptr) return result;
+
+		for(unsigned short i = 0; i < result.getRow(); ++i)
+		{
+			for(unsigned short j = 0; j + 1 < result.getRow() - i; ++j)
+			{
+				if(result.data[j][1] > result.data[j+1][1] || result.data[j][1] == result.data[j+1][1] && result.data[j][0] > result.data[j+1][0]) 
+				{ 
+					result.swapRows(j,j+1); 
+				}
+			}
+		}
+
+		return result;
+	}
+
+	void Matrix::normalizePivots()
+	{
+		Matrix pivotsInf = this->pivotsCoordinates();
+
+		for(unsigned short i = 0; i < pivotsInf.getRow(); ++i)
+		{
+			unsigned short row_ = static_cast<unsigned short>(pivotsInf.data[i][0]);
+			unsigned short col_ = static_cast<unsigned short>(pivotsInf.data[i][1]);
+			double pivot = this->data[row_][col_];
+
+			double factor = 1.0/pivot;
+
+			this->scaleRow(row_,factor);
+		}
+	}
+
+	void Matrix::organizeRows()
+	{
+		this->sortZeroRows();
+		Matrix pivotsInf = this->pivotsCoordinates();
+		Matrix temp(*this);
+
+		for(unsigned short i = 0; i < pivotsInf.getRow(); ++i)
+		{
+			unsigned short srcRow = static_cast<unsigned short>(pivotsInf.data[i][0]);
+			for(unsigned short j = 0; j < column; ++j)
+			{
+				this->data[i][j] = temp.data[srcRow][j];
+			}
+		}
+	}
+
+	Matrix Matrix::applyPivotElimination(bool normalize,bool lower,bool upper) const
+	{
+		Matrix matrix(*this);
+		bool* isScalar = new bool[row];
+
+		for(unsigned short i = 0; i < row; ++i) isScalar[i] = false;
+
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			if(isScalar[i]) continue;
+			for(unsigned short j = i + 1; j < row; ++j)
+			{
+				if(areScalarRows(matrix,i,j)) isScalar[j] = true;
+			}
+		}
+
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			if(isScalar[i])
+			{
+				for(unsigned short j = 0; j < column; ++j)
+				{
+					matrix.data[i][j] = 0.0;
+				}
+			}
+		}
+
+		delete[] isScalar;
+
+		matrix.sortZeroRows();
+		matrix.organizeRows();
+
+		Matrix pivotsInf = matrix.pivotsCoordinates();
+
+		if(lower)
+		{
+			for(unsigned short i = 0; i < pivotsInf.getRow(); ++i)
+			{
+				unsigned short pivotCol = static_cast<unsigned short>(pivotsInf.data[i][1]);
+
+				if(i == row-1) continue;
+				for(unsigned short k = i + 1; k < row; ++k)
+				{
+					if(std::abs(matrix.data[k][pivotCol]) > EPSILON)
+					{
+						double factor = -matrix.data[k][pivotCol]/matrix.data[i][pivotCol];
+
+						matrix.addScaledRow(i,k,factor);
+					}
+				}
+			}
+		}
+
+		if(upper)
+		{
+			for(int i = pivotsInf.getRow() - 1; i >= 0; --i)
+			{
+				unsigned short pivotCol = static_cast<unsigned short>(pivotsInf.data[i][1]);
+				
+				if(i == 0) continue;
+				for(int k = i - 1; k >= 0; --k)
+				{
+					if(std::abs(matrix.data[k][pivotCol]) > EPSILON)
+					{
+						double factor = -matrix.data[k][pivotCol]/matrix.data[i][pivotCol];
+
+						matrix.addScaledRow(i,k,factor);
+					}
+				}
+			}
+		}
+
+		if(normalize)
+		{
+			matrix.normalizePivots();
+		}
+
+		return matrix;
+	}
+
+	void Matrix::sortZeroRows()
+	{
+		unsigned short writeIndex = 0;
+
+	    for (unsigned short i = 0; i < row; ++i)
+	    {
+	        if (!isZeroRow(*this, i))  
+	        {
+	            if (i != writeIndex)
+	            {
+	                swapRows(i, writeIndex);  
+	            }
+	            ++writeIndex;
+	        }
+	    }
 	}
 
 
@@ -79,7 +331,7 @@ namespace matrixlib
 		return data[i][j];
 	}
 
-	double operator()(unsigned short i, unsigned short j) const
+	double Matrix::operator()(unsigned short i, unsigned short j) const
 	{
 		if(i >= row || j >= column) throw std::out_of_range("Matrix access out of bounds."); 
 		return data[i][j];
@@ -89,7 +341,7 @@ namespace matrixlib
 	void Matrix::swapRows(unsigned short i,unsigned short j)
 	{
 		if(i >= row || j >= row) throw std::out_of_range("Row index out of range in swapRows."); 
-		else if(i == j) return; 
+		if(i == j) return; 
 
 		double* temp = data[i];
 		data[i] = data[j];
@@ -99,7 +351,7 @@ namespace matrixlib
 	void Matrix::scaleRow(unsigned short i,double c)
 	{
 		if(i >= row) throw std::out_of_range("Row index out of range in scaleRow."); 
-		else if(c == 0.0) throw std::invalid_argument("Scaling factor can't be zero."); 
+		else if(std::abs(c) < EPSILON) return; 
 		for(unsigned short indexCol = 0; indexCol < column; ++indexCol) data[i][indexCol] *= c;
 	}
 
@@ -107,7 +359,7 @@ namespace matrixlib
 	{
 		if(sourceRow >= row || targetRow >= row) throw std::out_of_range("Row index out of range in addScaledRow."); 
 		else if(targetRow == sourceRow) throw std::invalid_argument("Cannot add a scaled row to itself."); 
-		else if(c == 0.0) throw std::invalid_argument("Scaling factor cannot be zero."); 
+		else if(std::abs(c) < EPSILON) return; 
 		for(unsigned short indexCol = 0; indexCol < column; ++indexCol) data[targetRow][indexCol] += c * data[sourceRow][indexCol];
 	}
 
@@ -169,100 +421,86 @@ namespace matrixlib
 	{
 		if(row != other.row || column != other.column) return false; 
 
-		constexpr double epsilon = 1e-9;
-
 		for(unsigned short i = 0; i < row; ++i)
 		{
 			for(unsigned short j = 0; j < column; ++j)
 			{
-				if(std::abs((data[i][j]-other.data[i][j]) > epsilon)) return false; 
+				if(std::abs(data[i][j]-other.data[i][j]) > EPSILON) return false; 
 			}
 		}
 		return true;
 	}
 
 
-	Matrix Matrix::doUpperTriangular() const
+	Matrix Matrix::doUpperTriangular(bool normalize) const
 	{
-		if(!isSquare(*this)) throw std::invalid_argument("Matrix must be square to convert to upper triangular form."); 
+		if(!isSquare(*this)) throw std::invalid_argument("Matrix must be square to convert to upper triangular form.");
+		else if(isUpperTriangular(*this)) return *this;
 
 		Matrix result(*this);
-
-		unsigned short locRow{0},locCol{0};
-		while(!isUpperTriangular(result))
-		{	
-			bool pivotFound = true;		
-			if(result.data[locRow][locCol] == 0)
-			{
-				pivotFound = false;
-				for(unsigned short i = locRow+1; i < row; ++i)
-				{
-					if(result.data[i][locCol] != 0)
-					{
-						result.swapRows(locRow,i);
-						pivotFound = true;
-						break;
-					}
-				}
-			}
-
-			if(!pivotFound){ ++locCol; continue;}
-			
-			double pivotValue = result.data[locRow][locCol];
-			
-			if(pivotValue != 1.0){ result.scaleRow(locRow,1.0/pivotValue); }
-
-			for(unsigned short i = locRow+1; i < row; ++i)
-			{
-				pivotValue = -result.data[i][locCol];
-				result.addScaledRow(locRow,i,pivotValue);
-			}
-			++locRow;
-			++locCol;
-		}
-		return result;
+		
+		return result.applyPivotElimination(normalize,true);
 	}
 
-	Matrix Matrix::doLowerTriangular() const
+	Matrix Matrix::doLowerTriangular(bool normalize) const
 	{
-		if(!isSquare(*this)) throw std::invalid_argument("Matrix must be square to convert to lower triangular form."); 
+		if(!isSquare(*this)) throw std::invalid_argument("Matrix must be square to convert to lower triangular form.");
+		else if(isLowerTriangular(*this)) return *this;
 
 		Matrix result(*this);
+		
+		return result.applyPivotElimination(normalize,false,true);
+	}
 
-		unsigned short locRow{row-1},locCol{column-1};
-		double factor{0.0};
-		while(!isLowerTriangular(result))
+	Matrix Matrix::doEchelon(bool normalize) const
+	{
+		Matrix result(*this);
+
+		return result.applyPivotElimination(normalize,true);
+	}
+
+	Matrix Matrix::toReducedEchelon() const
+	{
+		Matrix result(*this);
+	
+		return result.applyPivotElimination(true,true,true);
+	}
+
+	
+	void Matrix::print(std::ostream& os) const
+	{
+		for(unsigned short i = 0; i < row; ++i)
 		{
-			for(unsigned short i = 0; i < row; ++i)
+			os << "[ ";
+			for(unsigned short j = 0; j < column; ++j)
 			{
-				if(result.data[i][i] == 0)
-				{
-					if(isZeroColumn(result,i)) continue;
-					for(unsigned short i_ = 0; i_ < row; ++i_) // for find a pivot
-					{
-						if(result.data[i_][i] != 0) 
-						{
-							result.swapRows(i,i_);
-							break;
-						}
-					}
-				}
-				else
-				{
-					factor = 1.0/result.data[i][i];
-					result.scaleRow(i,factor);					// pivot will 1
-				}
+				os << data[i][j] << " ";
 			}
-			for(int i = locRow; i >= 0; --i)
-			{
-				for (int j = locCol; j >= 0; --j)
-				{
-					factor = -result.data[j][i];
-					result.addScaledRow(i,j,factor);
-				}
-			}
+			os << " ]\n";
 		}
-		return result;
 	}
 
+	void Matrix::read(std::istream& is) 
+	{
+		for(unsigned short i = 0; i < row; ++i)
+		{
+			for(unsigned short j = 0; j < column; ++j)
+			{
+				is >> data[i][j];
+			}
+		}
+	}
+
+
+	std::ostream& operator<<(std::ostream& os,const Matrix& matrix)
+	{
+		matrix.print(os);
+		return os;
+	}
+
+	std::istream& operator>>(std::istream& is,Matrix& matrix)
+	{
+		matrix.read(is);
+		return is;
+	}
 }

@@ -13,9 +13,11 @@ In Progress:
 - Elementary row operations (swap, scale, add scaled row)
 - Property checks (isSquare, isSymmetric, etc.)
 - Utility functions (trace, rank)
+- Row echelon and reduced row echelon
+- Special matrices (identity,zeros,ones,diagonal,scalar,exchange)
 
 Planned features:
-- Advanced operations: inverse, echelon, LU/QR decomposition, eigenvalues and eigenvectors
+- Advanced operations: inverse, LU/QR decomposition, eigenvalues and eigenvectors
 
 
 ---
